@@ -1,17 +1,2 @@
-# hostelcare
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# HostelCare_Open_Source_Project
+HostelCare is an open-source hostel complaint and maintenance management app built with Flutter for Android and iOS. Students can raise and track complaints, while wardens and maintenance staff can manage and resolve issues. Built with a scalable architecture using Flutter, Riverpod, GoRouter, and Supabase. 🚧 Active Development.
