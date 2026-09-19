@@ -9,13 +9,15 @@ class HostelCareApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
     return MaterialApp.router(
       title: Env.current.appName,
       debugShowCheckedModeBanner: Env.current.isDev,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
-      routerConfig: AppRouter.router,
+      routerConfig: router,
     );
   }
 }

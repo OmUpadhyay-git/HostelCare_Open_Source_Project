@@ -416,26 +416,63 @@ Uses PostgreSQL sequence for guaranteed uniqueness.
 
 ---
 
-## RLS Preparation
+## RLS Security
 
-The schema is designed for Row Level Security:
+RLS is enforced at the PostgreSQL level. All 15 application tables have `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` (applies to table owners too).
 
-- **Students:** Own complaints, own notifications, own feedback
-- **Wardens:** Complaints within authorized hostel/block
-- **Staff:** Assigned complaints only
-- **Admin:** Full access to all data
+### Helper Functions (SECURITY DEFINER)
 
-RLS policies will be implemented in Phase 5.
+| Function | Returns | Purpose |
+|---|---|---|
+| `current_user_role()` | `user_role` | Returns the role of `auth.uid()` |
+| `current_user_profile_id()` | `UUID` | Returns `auth.uid()` |
+| `is_admin()` | `BOOLEAN` | Checks if user is admin |
+| `is_warden()` | `BOOLEAN` | Checks if user is warden |
+| `is_staff()` | `BOOLEAN` | Checks if user is staff |
+| `is_student()` | `BOOLEAN` | Checks if user is student |
+| `current_user_hostel_id()` | `UUID` | Returns hostel_id for warden/staff |
 
----
+### Privilege Escalation Prevention
 
-## Migration Files
+Trigger `prevent_role_escalation_trigger` on `profiles` blocks non-admin users from modifying `role` or `is_active` columns.
+
+### Policy Summary
+
+| Table | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|
+| profiles | Own + admin + warden(students/staff in scope) | — | Own (columns restricted by trigger) | — |
+| hostels | All authenticated | Admin only | Admin only | Admin only |
+| blocks | All authenticated | Admin only | Admin only | Admin only |
+| floors | All authenticated | Admin only | Admin only | Admin only |
+| rooms | All authenticated | Admin only | Admin only | Admin only |
+| students | Own + warden/staff in hostel | Admin | Admin | Admin |
+| wardens | Own + staff/students in hostel + admin | Admin | Admin | Admin |
+| staff | Own + warden in hostel + admin | Admin | Admin | Admin |
+| complaint_categories | All authenticated | Admin only | Admin only | Admin only |
+| complaints | Own scope (student/warden/staff) + admin | Own + warden(students in scope) + admin | Warden/staff in scope + own + admin | Admin only |
+| complaint_images | Complaint scope + admin | Complaint scope + admin | — | Own uploads + admin |
+| complaint_history | Complaint scope + admin | Complaint scope + admin | Admin only | Admin only |
+| notifications | Own + admin | Admin only | Own (mark read) + admin | — |
+| feedback | Own/scope + admin | Own for own complaints + admin | — | — |
+| audit_logs | Admin only | Admin only | Admin only | Admin only |
+
+### Storage Policies
+
+| Operation | Rule |
+|---|---|
+| Upload | Complaint-scoped: students (own complaints), wardens (own hostel), staff (assigned), admin (all) |
+| Read | Same as upload |
+| Delete | Own uploads + admin |
+
+### Migration Files
 
 | File | Description |
 |---|---|
 | `001_initial_schema.sql` | All tables, enums, functions, indexes |
 | `002_seed_data.sql` | Initial complaint categories |
 | `003_storage.sql` | Storage bucket and policies |
+| `004_rls_security.sql` | RLS policies for all tables |
+| `005_rls_verification_tests.sql` | Authorization verification test script |
 
 ---
 

@@ -44,18 +44,20 @@ extension ComplaintPriorityExtension on ComplaintPriority {
       ComplaintPriority.low => 3,
     };
   }
+}
 
-  static ComplaintPriority fromString(String value) {
-    return ComplaintPriority.values.firstWhere(
-      (priority) => priority.name == value,
-      orElse: () => ComplaintPriority.medium,
-    );
-  }
+/// Parse ComplaintPriority from a string value
+ComplaintPriority parseComplaintPriority(String value) {
+  return ComplaintPriority.values.firstWhere(
+    (priority) => priority.name == value,
+    orElse: () => ComplaintPriority.medium,
+  );
+}
 
-  static ComplaintPriority fromIndex(int index) {
-    if (index >= 0 && index < ComplaintPriority.values.length) {
-      return ComplaintPriority.values[index];
-    }
-    return ComplaintPriority.medium;
+/// Parse ComplaintPriority from an index
+ComplaintPriority complaintPriorityFromIndex(int index) {
+  if (index >= 0 && index < ComplaintPriority.values.length) {
+    return ComplaintPriority.values[index];
   }
+  return ComplaintPriority.medium;
 }

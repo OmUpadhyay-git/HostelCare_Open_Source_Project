@@ -78,11 +78,12 @@ extension ComplaintStatusExtension on ComplaintStatus {
   bool get canBeReopened {
     return this == ComplaintStatus.closed && this != ComplaintStatus.resolved;
   }
+}
 
-  static ComplaintStatus fromString(String value) {
-    return ComplaintStatus.values.firstWhere(
-      (status) => status.name == value,
-      orElse: () => ComplaintStatus.pending,
-    );
-  }
+/// Parse ComplaintStatus from a string value
+ComplaintStatus parseComplaintStatus(String value) {
+  return ComplaintStatus.values.firstWhere(
+    (status) => status.name == value,
+    orElse: () => ComplaintStatus.pending,
+  );
 }

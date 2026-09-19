@@ -1,24 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/forgot_password_screen.dart';
 import '../../features/student/dashboard/student_home_screen.dart';
+import '../../features/student/complaints/my_complaints_screen.dart';
+import '../../features/student/complaints/create_complaint_screen.dart';
+import '../../features/student/complaints/complaint_detail_screen.dart';
 import '../../features/warden/dashboard/warden_home_screen.dart';
 import '../../features/staff/dashboard/staff_home_screen.dart';
 import '../../features/admin/dashboard/admin_home_screen.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/profile.dart';
 
-class AppRouter {
-  AppRouter._();
+final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
 
-  static final router = GoRouter(
+  return GoRouter(
     initialLocation: '/auth/login',
+    redirect: (context, state) {
+      final isAuthenticated = authState.isAuthenticated;
+      final isAuthRoute = state.matchedLocation.startsWith('/auth');
+      final profile = authState.profile;
+
+      // If not authenticated and not on auth route, redirect to login
+      if (!isAuthenticated && !isAuthRoute) {
+        return '/auth/login';
+      }
+
+      // If authenticated and on auth route, redirect to role dashboard
+      if (isAuthenticated && isAuthRoute && profile != null) {
+        return profile.role.routePrefix;
+      }
+
+      // If authenticated, verify role matches route prefix (prevent cross-role access)
+      if (isAuthenticated && profile != null && !isAuthRoute) {
+        final rolePrefix = profile.role.routePrefix;
+        if (!state.matchedLocation.startsWith(rolePrefix)) {
+          return rolePrefix;
+        }
+      }
+
+      return null;
+    },
     routes: [
       // Auth routes
       GoRoute(
         path: '/auth',
-        builder: (context, state) => const _PlaceholderScreen(title: 'Auth'),
+        builder: (context, state) => const LoginScreen(),
         routes: [
           GoRoute(
             path: 'login',
-            builder: (context, state) => const _PlaceholderScreen(title: 'Login'),
+            builder: (context, state) => const LoginScreen(),
+          ),
+          GoRoute(
+            path: 'forgot-password',
+            builder: (context, state) => const ForgotPasswordScreen(),
           ),
         ],
       ),
@@ -34,7 +71,20 @@ class AppRouter {
           ),
           GoRoute(
             path: 'complaints',
-            builder: (context, state) => const _PlaceholderScreen(title: 'My Complaints'),
+            builder: (context, state) => const MyComplaintsScreen(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const CreateComplaintScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final complaintId = state.pathParameters['id']!;
+                  return ComplaintDetailScreen(complaintId: complaintId);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: 'notifications',
@@ -156,7 +206,7 @@ class AppRouter {
       ),
     ],
   );
-}
+});
 
 class _PlaceholderScreen extends StatelessWidget {
   final String title;

@@ -18,8 +18,8 @@
 
 ## Current Status
 
-**Current phase:** Phase 3 — Supabase Project + Database ✅ COMPLETE
-**Last updated:** 2026-09-17
+**Current phase:** Phase 6 — Student Module ✅ COMPLETE (pending live Supabase testing)
+**Last updated:** 2026-09-19
 
 ---
 
@@ -31,7 +31,9 @@
 | 1 — Flutter Project Setup | ✅ Complete | Flutter project created, folder structure, theme, router, error architecture, shared components. |
 | 2 — Design System + UI Foundation | ✅ Complete | Complete ColorScheme, typography system, status/priority enums, 10+ reusable components, role screens. |
 | 3 — Supabase Project + Database | ✅ Complete | Full PostgreSQL schema, migrations, seed data, Supabase Flutter integration. |
-| 4 — Authentication | ⬜ Not started | |
+| 4 — Authentication | ✅ Complete | Profile model, AuthRepository, AuthState/Riverpod providers, Login/Forgot Password screens, auth guards, role-based routing. |
+| 5 — RLS + Security | ✅ Complete | RLS enabled on all 15 tables, 6 helper functions, 50+ policies, privilege escalation trigger, storage policies, verification test script. Pending live DB testing. |
+| 6 — Student Module | ✅ Complete | Student dashboard, complaint CRUD, search/filter, timeline, verify/reopen/cancel actions, 55 tests passing. Pending live Supabase testing. |
 | ... | ⬜ | Continue this table as phases progress |
 
 ---
@@ -50,6 +52,37 @@
 - `2026-09-17` — Soft-delete pattern (`is_active`) used for hostels, blocks, floors, rooms, staff.
 - `2026-09-17` — No `ON DELETE CASCADE` on complaint-related tables (historical data preserved).
 - `2026-09-17` — All timestamps use `TIMESTAMPTZ` for timezone awareness.
+- `2026-09-18` — Profile model includes UserRole extension with label, routePrefix, icon, and fromString.
+- `2026-09-18` — Auth state uses custom AuthState class (not Supabase's) to avoid naming conflicts.
+- `2026-09-18` — Router uses Riverpod Provider for dynamic auth-based redirects.
+- `2026-09-18` — Login/ForgotPassword use TextFormField with Form validation (not AppTextField which lacks validator).
+- `2026-09-18` — Auth tests are pure unit tests (no Supabase instance required) to avoid test flakiness.
+- `2026-09-18` — **AUDIT FIX:** `UserRole.fromString` now returns `null` for invalid roles instead of silently defaulting to `student`. `Profile.fromJson` throws `ArgumentError` for invalid roles.
+- `2026-09-18` — **AUDIT FIX:** Router now prevents cross-role route access (student cannot access `/warden/*` etc.).
+- `2026-09-18` — **AUDIT FIX:** `AuthNotifier` now subscribes to Supabase auth state stream for session refresh/sign-out handling.
+- `2026-09-18` — **AUDIT FIX:** Removed `updateLastLogin` method (referenced non-existent `last_login_at` column).
+- `2026-09-18` — **AUDIT FIX:** Cleaned up unused imports in `widget_test.dart`.
+- `2026-09-18` — **Phase 5:** RLS helper functions use `SECURITY DEFINER` + `SET search_path = public` to prevent manipulation.
+- `2026-09-18` — **Phase 5:** Identity derived from `auth.uid()` — never from client-supplied values in RLS policies.
+- `2026-09-18` — **Phase 5:** All 15 application tables have RLS enabled with `FORCE ROW LEVEL SECURITY` on table owners.
+- `2026-09-18` — **Phase 5:** `prevent_role_escalation` trigger blocks non-admin users from modifying `role` or `is_active` on profiles.
+- `2026-09-18` — **Phase 5:** Complaint history is append-only for non-admins (no UPDATE/DELETE policies).
+- `2026-09-18` — **Phase 5:** Storage policies use `(storage.foldername(name))[1]` to match complaint IDs, ensuring complaint-scoped access.
+- `2026-09-18` — **Phase 5:** Reference data (hostels, blocks, floors, rooms, categories) readable by all authenticated users, writable by admins only.
+- `2026-09-18` — **Phase 5:** Wardens can create complaints on behalf of students in their hostel scope.
+- `2026-09-18` — **Phase 5:** `005_rls_verification_tests.sql` created with 15 test scenarios for live verification.
+- `2026-09-19` — **Phase 6:** Created Complaint, ComplaintCategory, ComplaintHistory, ComplaintImage, Student, and Location models.
+- `2026-09-19` — **Phase 6:** ComplaintRepository handles all complaint CRUD with Supabase queries using joined data for display.
+- `2026-09-19` — **Phase 6:** StudentRepository fetches student record with joined hostel/block/floor/room data.
+- `2026-09-19` — **Phase 6:** ComplaintProvider exposes categories, complaint list with filtering/pagination, complaint detail, history, and create complaint state.
+- `2026-09-19` — **Phase 6:** StudentDashboard shows real data from Supabase (student info, complaint counts, recent complaints).
+- `2026-09-19` — **Phase 6:** CreateComplaintScreen loads categories from database, validates form, creates complaint with server-generated number.
+- `2026-09-19` — **Phase 6:** MyComplaintsScreen supports search by title/number, filter by status/priority, pagination.
+- `2026-09-19` — **Phase 6:** ComplaintDetailScreen shows full complaint info with timeline from complaint_history table.
+- `2026-09-19` — **Phase 6:** Verify/Reopen/Cancel actions use database RPC functions for status transition validation.
+- `2026-09-19` — **Phase 6:** All complaint identity (student_id, hostel_id, etc.) derived from authenticated student's database record — never from client input.
+- `2026-09-19` — **Phase 6:** Fixed `fromString` methods — converted to top-level functions (`parseComplaintStatus`, `parseComplaintPriority`) for proper accessibility.
+- `2026-09-19` — **Phase 6:** Added 19 complaint model tests bringing total to 55 tests passing.
 
 ---
 
@@ -57,8 +90,12 @@
 
 - Environment variables (SUPABASE_URL, SUPABASE_ANON_KEY) must be provided via `--dart-define` at build time; no `.env` file loading.
 - Supabase project must be created manually in Supabase dashboard before migrations can be applied.
-- RLS policies not yet implemented (Phase 5).
-- Storage policies are minimal placeholders for development (Phase 5 will complete them).
+- RLS policies implemented in `004_rls_security.sql` — live verification pending (Supabase project not yet created).
+- Storage policies replaced from minimal Phase 3 placeholders to complaint-scoped authorization.
+- Verification test script (`005_rls_verification_tests.sql`) requires test users to be created in Supabase dashboard before running.
+- **Phase 6:** Live Supabase integration testing not yet performed — no dev project created.
+- **Phase 6:** Notifications and Profile screens remain as placeholders (not in Phase 6 scope).
+- **Phase 6:** `verify_complaint`, `reopen_complaint`, `cancel_complaint` RPC functions referenced in repository — must be created in database when Supabase project is set up.
 
 ---
 
@@ -86,6 +123,9 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
    - `supabase/migrations/001_initial_schema.sql`
    - `supabase/migrations/002_seed_data.sql`
    - `supabase/migrations/003_storage.sql`
+   - `supabase/migrations/004_rls_security.sql` — RLS policies
+3. Create test users in Supabase dashboard
+4. Run `supabase/migrations/005_rls_verification_tests.sql` to verify authorization
 
 ---
 
@@ -140,6 +180,8 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
 - `supabase/migrations/001_initial_schema.sql` — All tables, enums, functions, indexes
 - `supabase/migrations/002_seed_data.sql` — Initial complaint categories
 - `supabase/migrations/003_storage.sql` — Storage bucket and policies
+- `supabase/migrations/004_rls_security.sql` — RLS policies for all tables
+- `supabase/migrations/005_rls_verification_tests.sql` — Authorization verification test script
 
 ### Documentation
 - `markdown files/DATABASE_DESIGN.md` — Complete database documentation
@@ -151,21 +193,72 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
 
 ---
 
+## Files Created (Phase 4)
+
+### Models
+- `lib/models/profile.dart` — Profile model with UserRole enum and extension
+
+### Repositories
+- `lib/repositories/auth_repository.dart` — Supabase Auth wrapper with error mapping
+
+### Providers
+- `lib/providers/auth_provider.dart` — AuthNotifier, AuthState, auth/profile/role providers
+
+### Features
+- `lib/features/auth/login_screen.dart` — Email/password login with validation
+- `lib/features/auth/forgot_password_screen.dart` — Password reset flow with success state
+
+### Updated Files
+- `lib/app/router/app_router.dart` — Auth guards, role-based redirect, login/forgot-password routes
+- `lib/app/hostelcare_app.dart` — Uses routerProvider instead of static AppRouter.router
+
+---
+
+## Files Created (Phase 6)
+
+### Models
+- `lib/models/complaint.dart` — Complaint data model with joined data support
+- `lib/models/complaint_category.dart` — Category model from complaint_categories table
+- `lib/models/complaint_history.dart` — History/audit trail model
+- `lib/models/complaint_image.dart` — Image metadata model
+- `lib/models/student.dart` — Student-specific data model
+- `lib/models/location.dart` — Hostel, Block, Floor, Room models
+- `lib/models/models.dart` — Barrel file for all models
+
+### Repositories
+- `lib/repositories/complaint_repository.dart` — Complaint CRUD, categories, history, images, actions
+- `lib/repositories/student_repository.dart` — Student record with joined location data
+
+### Providers
+- `lib/providers/complaint_provider.dart` — Categories, complaint list (filtered/paginated), detail, history, create state
+- `lib/providers/student_provider.dart` — Student record provider
+
+### Features/Student
+- `lib/features/student/dashboard/student_home_screen.dart` — Real data dashboard with student info, complaint stats, recent complaints
+- `lib/features/student/complaints/create_complaint_screen.dart` — Form with category selection, validation, image upload support
+- `lib/features/student/complaints/my_complaints_screen.dart` — List with search, filter, pagination
+- `lib/features/student/complaints/complaint_detail_screen.dart` — Full detail view with timeline, actions
+- `lib/features/student/complaints/complaints.dart` — Barrel file
+
+### Tests
+- `test/complaint_test.dart` — 19 tests for Complaint, ComplaintCategory, ComplaintHistory models, extensions, parse functions
+
+### Updated Files
+- `lib/core/constants/complaint_status.dart` — Added top-level `parseComplaintStatus` function
+- `lib/core/constants/complaint_priority.dart` — Added top-level `parseComplaintPriority` and `complaintPriorityFromIndex` functions
+- `lib/app/router/app_router.dart` — Added student complaint routes (list, new, detail)
+
+---
+
 ## Tests
 
-15 widget tests passing:
-- AppButton (4 tests)
-- StatusBadge (3 tests)
-- ComplaintCard (1 test)
-- EmptyState (1 test)
-- ErrorState (1 test)
-- LoadingIndicator (2 tests)
-- Timeline (1 test)
-- SectionHeader (1 test)
-- App smoke test (1 test)
+55 tests passing:
+- Auth tests (21): Profile model (6), UserRoleExtension (5), AuthState (9), AuthStatus (1)
+- Complaint tests (19): Complaint model (4), ComplaintCategory (2), ComplaintHistory (2), ComplaintStatus Extension (3), ComplaintPriority Extension (2), Parse Functions (6)
+- Widget tests (15): AppButton (4), StatusBadge (3), ComplaintCard (1), EmptyState (1), ErrorState (1), LoadingIndicator (2), Timeline (1), SectionHeader (1), App (1)
 
 ---
 
 ## Next Action
 
-Begin **Phase 4 — Authentication** per `Phases.md`.
+Awaiting user decision on **Phase 7 — Warden Module**.

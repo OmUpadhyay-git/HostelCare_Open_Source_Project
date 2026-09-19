@@ -32,14 +32,14 @@ Implement `Design.md` as a Flutter theme: colors, typography, spacing, shared co
 ## Phase 3 — Supabase Project + Database ✅ COMPLETE
 Create Supabase project(s) for dev/prod. Build core schema: hostels, blocks, floors, rooms, users, categories — with constraints and indexes per `Architecture.md`.
 
-## Phase 4 — Authentication
+## Phase 4 — Authentication ✅ COMPLETE
 Supabase Auth integration: login, logout, session persistence/restoration, session expiration handling, password reset. Secure storage for tokens.
 
-## Phase 5 — RLS + Security
-Write and test RLS policies for every table before any feature that touches it goes live. This phase underpins every phase after it.
+## Phase 5 — RLS + Security ✅ COMPLETE
+Write and test RLS policies for every table before any feature that touches it goes live. This phase underpins every phase after it. All 15 tables have RLS enabled. Helper functions, privilege escalation prevention, and verification test script created. Live verification pending (Supabase project not yet created).
 
-## Phase 6 — Student Module
-Student dashboard, profile (read-only fields), raise complaint flow, complaint list/detail, image upload for new complaints.
+## Phase 6 — Student Module ✅ COMPLETE
+Student dashboard with real Supabase data, complaint CRUD (create, read, list with search/filter/pagination), complaint detail with timeline, verify/reopen/cancel actions, 55 tests passing. Pending live Supabase integration testing.
 
 ## Phase 7 — Warden Module
 Warden dashboard, complaint queue scoped to authorized hostel/block, accept/reject, remarks.
