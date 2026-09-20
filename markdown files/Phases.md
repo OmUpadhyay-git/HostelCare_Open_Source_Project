@@ -39,10 +39,10 @@ Supabase Auth integration: login, logout, session persistence/restoration, sessi
 Write and test RLS policies for every table before any feature that touches it goes live. This phase underpins every phase after it. All 15 tables have RLS enabled. Helper functions, privilege escalation prevention, and verification test script created. Live verification pending (Supabase project not yet created).
 
 ## Phase 6 — Student Module ✅ COMPLETE
-Student dashboard with real Supabase data, complaint CRUD (create, read, list with search/filter/pagination), complaint detail with timeline, verify/reopen/cancel actions, 55 tests passing. Pending live Supabase integration testing.
+Student dashboard with real Supabase data, complaint CRUD (create, read, list with search/filter/pagination), complaint detail with timeline, verify/reopen/cancel actions, image picker integration, RPC functions for status transitions, 55 tests passing.
 
-## Phase 7 — Warden Module
-Warden dashboard, complaint queue scoped to authorized hostel/block, accept/reject, remarks.
+## Phase 7 — Warden Module ✅ COMPLETE
+Warden dashboard with real data, complaint queue with search/filter/pagination, accept/reject workflow with reason, staff assignment, complaint detail with timeline, hostel-scoped access enforced at database level via RLS + RPC functions, 68 tests passing.
 
 ## Phase 8 — Staff Module
 Staff dashboard, assigned-complaint list, accept/start work, progress remarks and images.

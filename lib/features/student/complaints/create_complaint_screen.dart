@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
@@ -21,10 +24,16 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _imagePicker = ImagePicker();
 
   String? _selectedCategoryId;
   ComplaintPriority _selectedPriority = ComplaintPriority.medium;
   bool _isSubmitting = false;
+  final List<File> _selectedImages = [];
+
+  static const int _maxImages = 5;
+  static const int _maxFileSizeMB = 10;
+  static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
   @override
   void dispose() {
@@ -66,6 +75,125 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
     return null;
   }
 
+  bool _validateImageFile(File file) {
+    final extension = file.path.split('.').last.toLowerCase();
+    if (!_allowedExtensions.contains(extension)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only JPG, PNG, and WebP images are allowed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return false;
+    }
+
+    final sizeInBytes = file.lengthSync();
+    final sizeInMB = sizeInBytes / (1024 * 1024);
+    if (sizeInMB > _maxFileSizeMB) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Image must be smaller than $_maxFileSizeMB MB'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  Future<void> _pickImages(ImageSource source) async {
+    if (_selectedImages.length >= _maxImages) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Maximum $_maxImages images allowed'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
+        if (_validateImageFile(file)) {
+          setState(() {
+            _selectedImages.add(file);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImages(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImages(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadImages(String complaintId) async {
+    if (_selectedImages.isEmpty) return;
+
+    final repository = ref.read(complaintRepositoryProvider);
+    for (final image in _selectedImages) {
+      try {
+        await repository.uploadComplaintImage(
+          complaintId: complaintId,
+          filePath: image.path,
+          imageType: 'complaint',
+        );
+      } catch (e) {
+        // Log error but don't block complaint submission
+        debugPrint('Failed to upload image: $e');
+      }
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategoryId == null) {
@@ -87,26 +215,33 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
           priority: _selectedPriority.name,
         );
 
-    setState(() => _isSubmitting = false);
-
     if (success && mounted) {
       final state = ref.read(createComplaintProvider);
       final complaint = state.createdComplaint;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Complaint ${complaint?.complaintNumber ?? ''} submitted successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      // Upload images if complaint was created successfully
+      if (complaint != null && _selectedImages.isNotEmpty) {
+        await _uploadImages(complaint.id);
+      }
 
-      // Navigate to complaint detail or back to list
-      if (complaint != null) {
-        context.go('/student/complaints/${complaint.id}');
-      } else {
-        context.go('/student/complaints');
+      setState(() => _isSubmitting = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Complaint ${complaint?.complaintNumber ?? ''} submitted successfully'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+
+        if (complaint != null) {
+          context.go('/student/complaints/${complaint.id}');
+        } else {
+          context.go('/student/complaints');
+        }
       }
     } else if (mounted) {
+      setState(() => _isSubmitting = false);
       final state = ref.read(createComplaintProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -121,7 +256,6 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
 
-    // Listen for success
     ref.listen<CreateComplaintState>(createComplaintProvider, (previous, next) {
       if (next.status == CreateComplaintStatus.success) {
         // Navigation handled in _handleSubmit
@@ -163,7 +297,6 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
                   onChanged: (value) {
                     setState(() {
                       _selectedCategoryId = value;
-                      // Set default priority from category
                       if (value != null) {
                         final category = categories.firstWhere(
                           (c) => c.id == value,
@@ -250,6 +383,78 @@ class _CreateComplaintScreenState extends ConsumerState<CreateComplaintScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: AppSpacing.base),
+
+              // Photos section
+              Text(
+                'Photos (optional)',
+                style: AppTextStyles.labelLarge.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Add up to $_maxImages images to help explain the issue',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              // Image grid
+              if (_selectedImages.isNotEmpty) ...[
+                SizedBox(
+                  height: 120,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _selectedImages.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              _selectedImages[index],
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.error,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+
+              // Add photo button
+              if (_selectedImages.length < _maxImages)
+                AppButton.outlined(
+                  label: 'Add Photo',
+                  icon: Icons.add_a_photo,
+                  onPressed: _isSubmitting ? null : _showImageSourceDialog,
+                ),
               const SizedBox(height: AppSpacing.xl),
 
               // Submit button

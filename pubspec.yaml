@@ -48,6 +48,9 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.8.4
 
+  # Image picking
+  image_picker: ^1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

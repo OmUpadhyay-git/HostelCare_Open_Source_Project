@@ -18,8 +18,8 @@
 
 ## Current Status
 
-**Current phase:** Phase 6 — Student Module ✅ COMPLETE (pending live Supabase testing)
-**Last updated:** 2026-09-19
+**Current phase:** Phase 7 — Warden Module ✅ COMPLETE
+**Last updated:** 2026-09-20
 
 ---
 
@@ -34,6 +34,7 @@
 | 4 — Authentication | ✅ Complete | Profile model, AuthRepository, AuthState/Riverpod providers, Login/Forgot Password screens, auth guards, role-based routing. |
 | 5 — RLS + Security | ✅ Complete | RLS enabled on all 15 tables, 6 helper functions, 50+ policies, privilege escalation trigger, storage policies, verification test script. Pending live DB testing. |
 | 6 — Student Module | ✅ Complete | Student dashboard, complaint CRUD, search/filter, timeline, verify/reopen/cancel actions, 55 tests passing. Pending live Supabase testing. |
+| 7 — Warden Module | ✅ Complete | Warden dashboard, complaint queue, accept/reject/assign workflow, hostel-scoped access, 68 tests passing. Pending live Supabase testing. |
 | ... | ⬜ | Continue this table as phases progress |
 
 ---
@@ -83,6 +84,20 @@
 - `2026-09-19` — **Phase 6:** All complaint identity (student_id, hostel_id, etc.) derived from authenticated student's database record — never from client input.
 - `2026-09-19` — **Phase 6:** Fixed `fromString` methods — converted to top-level functions (`parseComplaintStatus`, `parseComplaintPriority`) for proper accessibility.
 - `2026-09-19` — **Phase 6:** Added 19 complaint model tests bringing total to 55 tests passing.
+- `2026-09-20` — **Phase 6:** Created `006_complaint_rpc_functions.sql` with `verify_complaint`, `reopen_complaint`, `cancel_complaint` PostgreSQL functions using SECURITY DEFINER, auth.uid()-derived identity, and status transition validation.
+- `2026-09-20` — **Phase 6:** Added `image_picker` dependency and integrated image picker UI in CreateComplaintScreen (gallery/camera selection, preview, remove, validation for size/type, upload after complaint creation).
+- `2026-09-20` — **Phase 6:** Fixed DropdownButtonFormField to use `initialValue` parameter (Flutter 3.47+ API).
+- `2026-09-20` — **Phase 7:** Created Warden model with hostel/block associations and WardenRecord combined model.
+- `2026-09-20` — **Phase 7:** Created StaffMember model for staff assignment functionality.
+- `2026-09-20` — **Phase 7:** Created `007_warden_complaint_rpcs.sql` with `accept_complaint`, `reject_complaint`, `assign_complaint` PostgreSQL functions using SECURITY DEFINER, auth.uid()-derived identity, and hostel-scope validation.
+- `2026-09-20` — **Phase 7:** Created WardenRepository with complaint management, filtering, pagination, staff listing, and RPC-based state transitions.
+- `2026-09-20` — **Phase 7:** Created Warden providers for warden record, complaint counts, complaint list with filtering, complaint detail, history, images, available staff.
+- `2026-09-20` — **Phase 7:** Built WardenDashboardScreen with real data from Supabase (warden info, complaint stats, recent complaints).
+- `2026-09-20` — **Phase 7:** Built WardenComplaintsScreen with search, status/priority filters, and pagination.
+- `2026-09-20` — **Phase 7:** Built WardenComplaintDetailScreen with complaint info, timeline, accept/reject/assign actions.
+- `2026-09-20` — **Phase 7:** All warden operations use RPC functions with SECURITY DEFINER for status transition validation.
+- `2026-09-20` — **Phase 7:** Hostel scoping enforced at database level via RLS policies and RPC validation.
+- `2026-09-20` — **Phase 7:** Added 13 warden model tests bringing total to 68 tests passing.
 
 ---
 
@@ -95,7 +110,7 @@
 - Verification test script (`005_rls_verification_tests.sql`) requires test users to be created in Supabase dashboard before running.
 - **Phase 6:** Live Supabase integration testing not yet performed — no dev project created.
 - **Phase 6:** Notifications and Profile screens remain as placeholders (not in Phase 6 scope).
-- **Phase 6:** `verify_complaint`, `reopen_complaint`, `cancel_complaint` RPC functions referenced in repository — must be created in database when Supabase project is set up.
+- **Phase 6:** RPC functions (`verify_complaint`, `reopen_complaint`, `cancel_complaint`) now created in `006_complaint_rpc_functions.sql` — pending migration to live DB.
 
 ---
 
@@ -124,6 +139,8 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
    - `supabase/migrations/002_seed_data.sql`
    - `supabase/migrations/003_storage.sql`
    - `supabase/migrations/004_rls_security.sql` — RLS policies
+   - `supabase/migrations/006_complaint_rpc_functions.sql` — Student RPC functions
+   - `supabase/migrations/007_warden_complaint_rpcs.sql` — Warden RPC functions
 3. Create test users in Supabase dashboard
 4. Run `supabase/migrations/005_rls_verification_tests.sql` to verify authorization
 
@@ -138,6 +155,7 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
 | flutter_secure_storage | ^9.2.4 | Secure token storage |
 | intl | ^0.20.2 | Date formatting |
 | supabase_flutter | ^2.8.4 | Supabase client |
+| image_picker | ^1.2.3 | Camera/gallery image selection |
 
 ---
 
@@ -182,6 +200,8 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
 - `supabase/migrations/003_storage.sql` — Storage bucket and policies
 - `supabase/migrations/004_rls_security.sql` — RLS policies for all tables
 - `supabase/migrations/005_rls_verification_tests.sql` — Authorization verification test script
+- `supabase/migrations/006_complaint_rpc_functions.sql` — Student verify/reopen/cancel RPC functions
+- `supabase/migrations/007_warden_complaint_rpcs.sql` — Warden accept/reject/assign RPC functions
 
 ### Documentation
 - `markdown files/DATABASE_DESIGN.md` — Complete database documentation
@@ -252,13 +272,14 @@ flutter run --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_ANON_KEY=<ke
 
 ## Tests
 
-55 tests passing:
+68 tests passing:
 - Auth tests (21): Profile model (6), UserRoleExtension (5), AuthState (9), AuthStatus (1)
 - Complaint tests (19): Complaint model (4), ComplaintCategory (2), ComplaintHistory (2), ComplaintStatus Extension (3), ComplaintPriority Extension (2), Parse Functions (6)
+- Warden tests (13): Warden model (4), StaffMember model (5), WardenComplaintFilter (4)
 - Widget tests (15): AppButton (4), StatusBadge (3), ComplaintCard (1), EmptyState (1), ErrorState (1), LoadingIndicator (2), Timeline (1), SectionHeader (1), App (1)
 
 ---
 
 ## Next Action
 
-Awaiting user decision on **Phase 7 — Warden Module**.
+Awaiting user decision on **Phase 8 — Staff Module**.

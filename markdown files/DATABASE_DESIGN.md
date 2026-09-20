@@ -393,6 +393,24 @@ Automatically updates `updated_at` on row update.
 Generates unique complaint numbers: `HC-YYYY-NNNNNN`
 Uses PostgreSQL sequence for guaranteed uniqueness.
 
+### verify_complaint(p_complaint_id UUID, p_verified BOOLEAN)
+Called by student after status = 'resolved'. Sets status to 'verified' if confirmed, or 'reopened' if reported not fixed. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
+### reopen_complaint(p_complaint_id UUID, p_reason TEXT)
+Called by student after status = 'verified'. Sets status back to 'reopened' so warden/staff must address again. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
+### cancel_complaint(p_complaint_id UUID)
+Called by student while status = 'pending' or 'accepted' (before work starts). Sets status to 'cancelled'. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
+### accept_complaint(p_complaint_id UUID)
+Called by warden when status = 'pending'. Sets status to 'accepted' and records accepted_at timestamp. Validates: authenticated user is warden, complaint belongs to warden's hostel. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
+### reject_complaint(p_complaint_id UUID, p_reason TEXT)
+Called by warden when status = 'pending'. Sets status to 'rejected' and records the reason. Validates: authenticated user is warden, complaint belongs to warden's hostel. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
+### assign_complaint(p_complaint_id UUID, p_staff_id UUID)
+Called by warden when status = 'accepted'. Sets status to 'assigned' and records the staff assignment. Validates: authenticated user is warden, complaint in warden's hostel, staff member is active and belongs to the same hostel. Uses SECURITY DEFINER with auth.uid()-derived identity.
+
 ---
 
 ## Seed Data
@@ -473,6 +491,8 @@ Trigger `prevent_role_escalation_trigger` on `profiles` blocks non-admin users f
 | `003_storage.sql` | Storage bucket and policies |
 | `004_rls_security.sql` | RLS policies for all tables |
 | `005_rls_verification_tests.sql` | Authorization verification test script |
+| `006_complaint_rpc_functions.sql` | Student RPC functions (verify/reopen/cancel) |
+| `007_warden_complaint_rpcs.sql` | Warden RPC functions (accept/reject/assign) |
 
 ---
 

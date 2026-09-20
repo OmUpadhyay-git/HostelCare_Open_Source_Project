@@ -4,4 +4,6 @@ export 'complaint_category.dart';
 export 'complaint_history.dart';
 export 'complaint_image.dart';
 export 'student.dart';
+export 'warden.dart';
+export 'staff.dart';
 export 'location.dart';

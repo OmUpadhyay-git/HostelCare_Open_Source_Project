@@ -8,6 +8,8 @@ import '../../features/student/complaints/my_complaints_screen.dart';
 import '../../features/student/complaints/create_complaint_screen.dart';
 import '../../features/student/complaints/complaint_detail_screen.dart';
 import '../../features/warden/dashboard/warden_home_screen.dart';
+import '../../features/warden/complaints/warden_complaints_screen.dart';
+import '../../features/warden/complaints/warden_complaint_detail_screen.dart';
 import '../../features/staff/dashboard/staff_home_screen.dart';
 import '../../features/admin/dashboard/admin_home_screen.dart';
 import '../../providers/auth_provider.dart';
@@ -108,11 +110,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'complaints',
-            builder: (context, state) => const _PlaceholderScreen(title: 'Complaint Queue'),
-          ),
-          GoRoute(
-            path: 'students',
-            builder: (context, state) => const _PlaceholderScreen(title: 'Students'),
+            builder: (context, state) => const WardenComplaintsScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) {
+                  final complaintId = state.pathParameters['id']!;
+                  return WardenComplaintDetailScreen(complaintId: complaintId);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: 'notifications',
